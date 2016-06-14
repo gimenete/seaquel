@@ -1,0 +1,30 @@
+{
+  "name": "seaquel",
+  "version": "0.1.0",
+  "description": "The best of an ORM with the flexibility of writing your own SQL",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gimenete/seaquel.git"
+  },
+  "keywords": [
+    "orm",
+    "sql"
+  ],
+  "author": "Alberto Gimeno <gimenete@gimenete.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gimenete/seaquel/issues"
+  },
+  "homepage": "https://github.com/gimenete/seaquel#readme",
+  "dependencies": {
+    "dbdiff": "^0.4.2",
+    "pg": "^5.1.0"
+  },
+  "devDependencies": {
+    "standard": "^7.1.2"
+  }
+}
