@@ -67,7 +67,7 @@ notifications.addColumn('id', 'serial').primaryKey()
 notifications.addColumn('text', String)
 notifications.addForeignKey('user_id', users.getColumn('id'))
 
-db.sync('drop')
+db.sync()
   .then((sql) => {
     if (sql.length > 0) {
       console.log('-------------------------')
@@ -78,7 +78,7 @@ db.sync('drop')
   })
 ```
 
-The `sync()` method will return SQL to match the schema in your existing database. The parameter is one of the available [safety lebels of dbdiff](https://github.com/gimenete/dbdiff#safety-level). In any case don't worry because this SQL is never executed automatically. You will need to execute it yourself.
+The `sync()` method will return SQL to match the schema in your existing database. There is an optional parameter that can be one of the available [safety lebels of dbdiff](https://github.com/gimenete/dbdiff#safety-level). In any case don't worry because this SQL is never executed automatically. You will need to execute it yourself.
 
 ## CRUD operations
 
@@ -147,7 +147,7 @@ db.queryOne('SELECT COUNT(*) AS count FROM users WHERE id > $1', [userId])
 // returns an array of objects
 db.queryAll('SELECT DISTINCT something FROM users')
 
-// returns an integer with the number of changed rows
+// returns an integer with the number of affected rows
 db.execute('CREATE EXTENSION unaccent')
 ```
 
