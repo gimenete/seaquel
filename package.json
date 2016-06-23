@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/gimenete/seaquel#readme",
   "dependencies": {
-    "dbdiff": "^0.5.0",
+    "dbdiff": "^0.5.1",
     "mocha": "^2.5.3",
     "pg": "^5.1.0",
     "underscore": "^1.8.3"
