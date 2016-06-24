@@ -16,7 +16,7 @@ class Column {
     } else if (type === Boolean) {
       type = 'boolean'
     } else if (type === Date) {
-      type = 'timestamp without timezone'
+      type = 'timestamp with time zone'
     } else if (type === 'serial') {
       type = 'integer'
       defaultValue = `nextval('${table.name}_id_seq'::regclass)`
@@ -59,7 +59,6 @@ class Column {
   }
 
   primaryKey (name) {
-    name = name || `${this.table.name}_${this.column.name}_pk`
     this.t.primaryKey(name, this.column.name)
     return this
   }
@@ -71,8 +70,8 @@ class Column {
   }
 
   index (name, type) {
-    name = name || `index_${this.table.name}_${this.column.name}`
-    type = type || 'GIST'
+    name = name || `${this.table.name}_${this.column.name}`
+    type = type || type === 'boolean' ? 'BTREE' : 'GIST'
     this.table.indexes.push({ name, type, columns: [this.column.name] })
     return this
   }
@@ -198,6 +197,7 @@ class Table {
   }
 
   primaryKey (name, ...columns) {
+    name = name || `${this.table.name}_pkey`
     this.table.constraints.push({
       name,
       schema: 'public',
