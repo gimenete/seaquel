@@ -109,27 +109,33 @@ class Table {
   _pairs (keys, obj, params) {
     return keys.map((key) => {
       params.push(obj[key])
-      return key + '=$' + params.length
+      return `"${key}" = $${params.length}`
     }).join(', ')
   }
 
   _ands (keys, obj, params, operator) {
     return keys.map((key) => {
       params.push(obj[key])
-      if (operator && key.indexOf(' ') > 0) {
-        return key + '$' + params.length
+      var n = key.indexOf(' ')
+      if (operator && n > 0) {
+        var op = key.substring(n + 1).trim()
+        key = key.substring(0, n).trim()
+        return `"${key}" ${op} $${params.length}`
       }
-      return key + '=$' + params.length
+      return `"${key}" = $${params.length}`
     }).join(' AND ')
+  }
+
+  _commas (keys) {
+    return keys.map((key) => `"${key}"`).join(', ')
   }
 
   insert (obj) {
     var keys = this._keys(obj)
-    var fields = keys.join(', ')
     var params = []
     return this.client.findOne(`
-      INSERT INTO ${this.table.schema}.${this.table.name} (${fields})
-      VALUES (${this._placeholders(keys, obj, params)}) RETURNING id
+      INSERT INTO ${this.table.schema}.${this.table.name} (${this._commas(keys)})
+      VALUES (${this._placeholders(keys, obj, params)}) RETURNING *
     `, params)
   }
 
@@ -142,6 +148,11 @@ class Table {
       SET ${this._pairs(fields, obj, params)}
       WHERE ${this._ands(this.pks, obj, params)}
     `, params)
+  }
+
+  updateAndSelect (obj) {
+    return this.update(obj)
+      .then(() => this.selectOne(obj))
   }
 
   updateWhere (obj, where) {
@@ -193,7 +204,7 @@ class Table {
 
   columns (alias, as = true) {
     var prefix = alias ? `${alias}.` : ''
-    return Object.keys(this.cols).map((item) => prefix + item + (alias && as ? ` AS ${alias}_${item}` : '')).join(', ')
+    return Object.keys(this.cols).map((item) => prefix + `"${item}"` + (alias && as ? ` AS "${alias}_${item}"` : '')).join(', ')
   }
 
   primaryKey (name, ...columns) {
@@ -262,6 +273,14 @@ class Seaquel {
     return table
   }
 
+  getTableNames () {
+    return Object.keys(this.tables)
+  }
+
+  getTable (name) {
+    return this.tables[name]
+  }
+
   sync (type) {
     return dbdiff.describeDatabase(this.options)
       .then((schema) => {
@@ -281,6 +300,17 @@ class Seaquel {
 
   execute (sql, params) {
     return this.client.execute(sql, params)
+  }
+
+  pick (row, prefix) {
+    var obj = {}
+    prefix = prefix + '_'
+    Object.keys(row).forEach((key) => {
+      if (key.substring(0, prefix.length) === prefix) {
+        obj[key.substring(prefix.length)] = row[key]
+      }
+    })
+    return obj
   }
 
 }

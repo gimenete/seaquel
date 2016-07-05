@@ -167,8 +167,8 @@ describe('Test everything', () => {
   })
 
   it('tests the columns() utiliy method', () => {
-    assert.equal(users.columns(), 'id, first_name, last_name, email, banned, password')
-    assert.equal(users.columns('u'), 'u.id AS u_id, u.first_name AS u_first_name, u.last_name AS u_last_name, u.email AS u_email, u.banned AS u_banned, u.password AS u_password')
-    assert.equal(users.columns('u', false), 'u.id, u.first_name, u.last_name, u.email, u.banned, u.password')
+    assert.equal(users.columns(), '"id", "first_name", "last_name", "email", "banned", "password"')
+    assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password"')
+    assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password"')
   })
 })
