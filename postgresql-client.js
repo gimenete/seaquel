@@ -1,36 +1,38 @@
 var pg = require('pg')
-var querystring = require('querystring')
+var url = require('url')
 
 class PostgresClient {
   constructor (options) {
-    var conString
     if (typeof options === 'string') {
-      conString = options
-    } else {
-      var dialectOptions = Object.assign({}, options.dialectOptions)
-      Object.keys(dialectOptions).forEach((key) => {
-        var value = dialectOptions[key]
-        if (typeof value === 'boolean') {
-          dialectOptions[key] = value ? 'true' : 'false'
+      var parts = url.parse(options, true)
+      var x = parts.host.indexOf(':')
+      options = {}
+      options.host = parts.hostname
+      options.port = x > 0 ? +parts.host.substring(x + 1) : 5432
+      options.database = parts.pathname.substring(1)
+      var auth = parts.auth
+      if (auth) {
+        var n = auth.indexOf(':')
+        if (n > 0) {
+          options.user = auth.substring(0, n)
+          options.password = auth.substring(n + 1)
+        } else {
+          options.user = auth
         }
-      })
-      var query = querystring.stringify(dialectOptions)
-      if (query.length > 0) query = '?' + query
-      conString = `postgres://${options.username}:${options.password}@${options.host}:${options.port || 5432}/${options.database}${query}`
+      }
+      if (parts.query) {
+        Object.keys(parts.query).forEach((key) => {
+          var value = parts.query[key]
+          if (value === 'true') {
+            parts.query[key] = true
+          } else if (value === 'false') {
+            parts.query[key] = false
+          }
+        })
+        Object.assign(options, parts.query)
+      }
     }
-    this.conString = conString
-  }
-
-  connect () {
-    return new Promise((resolve, reject) => {
-      if (this.client) return resolve()
-      pg.connect(this.conString, (err, client, done) => {
-        if (err) return reject(err)
-        this.client = client
-        this.done = done
-        resolve()
-      })
-    })
+    this.pool = new pg.Pool(options)
   }
 
   execute (sql, params) {
@@ -38,15 +40,15 @@ class PostgresClient {
   }
 
   query (sql, params = []) {
-    return this.connect()
-      .then(() => {
-        return new Promise((resolve, reject) => {
-          this.client.query(sql, params, (err, result) => {
-            this.done()
-            err ? reject(err) : resolve(result)
-          })
+    return new Promise((resolve, reject) => {
+      this.pool.connect((err, client, done) => {
+        if (err) return reject(err)
+        client.query(sql, params, (err, result) => {
+          done()
+          err ? reject(err) : resolve(result)
         })
       })
+    })
   }
 
   find (sql, params = []) {
