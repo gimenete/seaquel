@@ -254,6 +254,7 @@ class Table {
   addForeignKey (name, foreignColumn) {
     var col = this.addColumn(name, foreignColumn.column.type)
     col.foreignKey(null, foreignColumn.table.name, [foreignColumn.column.name])
+    return col
   }
 
 }
