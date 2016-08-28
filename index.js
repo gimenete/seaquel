@@ -76,6 +76,16 @@ class Column {
     return this
   }
 
+  onInsert (func) {
+    this._onInsert = func
+    return this
+  }
+
+  onUpdate (func) {
+    this._onUpdate = func
+    return this
+  }
+
 }
 
 class Table {
@@ -131,6 +141,12 @@ class Table {
   }
 
   insert (obj) {
+    Object.keys(this.cols).forEach((key) => {
+      var col = this.cols[key]
+      if (typeof col._onInsert === 'function') {
+        obj[key] = col._onInsert(obj[key])
+      }
+    })
     var keys = this._keys(obj)
     var params = []
     return this.client.findOne(`
@@ -140,6 +156,12 @@ class Table {
   }
 
   update (obj) {
+    Object.keys(this.cols).forEach((key) => {
+      var col = this.cols[key]
+      if (typeof col._onUpdate === 'function') {
+        obj[key] = col._onUpdate(obj[key])
+      }
+    })
     var keys = this._keys(obj)
     var fields = _.difference(keys, this.pks)
     var params = []
@@ -245,6 +267,14 @@ class Table {
     var col = new Column(this, this.schema, this.table, name, type)
     this.cols[name] = col
     return col
+  }
+
+  addCreatedAtColumn (name) {
+    return this.addColumn(name, Date).onInsert((value) => new Date())
+  }
+
+  addUpdatedAtColumn (name) {
+    return this.addColumn(name, Date).onInsert((value) => new Date()).onUpdate((value) => new Date())
   }
 
   getColumn (name) {

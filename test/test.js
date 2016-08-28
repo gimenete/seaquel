@@ -1,6 +1,7 @@
 /* global describe before it*/
 var seaquel = require('../')
 var assert = require('assert')
+var crypto = require('crypto')
 var db = seaquel.connect('postgres://aro:aro@localhost/seaquel')
 
 var users = db.addTable('users')
@@ -10,6 +11,9 @@ users.addColumn('last_name', String)
 users.addColumn('email', String).unique()
 users.addColumn('banned', Boolean).index(null, 'btree').default(false)
 users.addColumn('password', String).nullable()
+users.addColumn('invitation_code', String).onInsert((value) => value || crypto.randomBytes(6).toString('hex'))
+users.addCreatedAtColumn('created_at')
+users.addUpdatedAtColumn('updated_at')
 
 var notifications = db.addTable('notifications')
 notifications.addColumn('id', 'serial').primaryKey()
@@ -40,6 +44,8 @@ describe('Test everything', () => {
       .then((result) => {
         userId = result.id
         assert.ok(userId)
+        assert.ok(result.created_at)
+        assert.ok(result.updated_at)
       })
   })
 
@@ -57,6 +63,9 @@ describe('Test everything', () => {
         assert.equal(result.first_name, 'Darth')
         assert.equal(result.last_name, 'Vader')
         assert.equal(result.email, 'vader@example.com')
+        assert.ok(result.created_at)
+        assert.ok(result.updated_at)
+        assert.ok(result.updated_at > result.created_at)
       })
   })
 
@@ -167,8 +176,8 @@ describe('Test everything', () => {
   })
 
   it('tests the columns() utiliy method', () => {
-    assert.equal(users.columns(), '"id", "first_name", "last_name", "email", "banned", "password"')
-    assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password"')
-    assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password"')
+    assert.equal(users.columns(), '"id", "first_name", "last_name", "email", "banned", "password", "invitation_code", "created_at", "updated_at"')
+    assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password", u."invitation_code" AS "u_invitation_code", u."created_at" AS "u_created_at", u."updated_at" AS "u_updated_at"')
+    assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password", u."invitation_code", u."created_at", u."updated_at"')
   })
 })

@@ -61,6 +61,9 @@ users.addColumn('last_name', String)
 users.addColumn('email', String).unique()
 users.addColumn('banned', Boolean).index(null, 'btree').default(false)
 users.addColumn('password', String).nullable()
+users.addColumn('invitation_code', String).onInsert((value) => value || crypto.randomBytes(6).toString('hex'))
+users.addCreatedAtColumn('created_at')
+users.addUpdatedAtColumn('updated_at')
 
 var notifications = db.addTable('notifications')
 notifications.addColumn('id', 'serial').primaryKey()
@@ -79,6 +82,20 @@ db.sync()
 ```
 
 The `sync()` method will return SQL to match the schema in your existing database. There is an optional parameter that can be one of the available [safety lebels of dbdiff](https://github.com/gimenete/dbdiff#safety-level). In any case don't worry because this SQL is never executed automatically. You will need to execute it yourself.
+
+As you can see you can define functions for generating default values for each column. You can use `onInsert()` and `onUpdate()`. The given functions will receive the current value (which you can use or ignore).
+
+`addCreatedAtColumn(name)` is a shorthand for:
+
+```javascript
+table.addColumn(name, Date).onInsert((value) => new Date())
+```
+
+`addUpdatedAtColumn(name)` is a short hand for:
+
+```javascript
+table.addColumn(name, Date).onInsert((value) => new Date()).onUpdate((value) => new Date())
+```
 
 ## CRUD operations
 
