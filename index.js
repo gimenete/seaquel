@@ -150,7 +150,7 @@ class Table {
     var keys = this._keys(obj)
     var params = []
     return this.client.findOne(`
-      INSERT INTO ${this.table.schema}.${this.table.name} (${this._commas(keys)})
+      INSERT INTO ${this.table.schema}."${this.table.name}" (${this._commas(keys)})
       VALUES (${this._placeholders(keys, obj, params)}) RETURNING *
     `, params)
   }
