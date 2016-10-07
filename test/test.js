@@ -3,6 +3,7 @@ var seaquel = require('../')
 var assert = require('assert')
 var crypto = require('crypto')
 var db = seaquel.connect('postgres://aro:aro@localhost/seaquel')
+var incr = seaquel.incr
 
 var users = db.addTable('users')
 users.addColumn('id', 'serial').primaryKey()
@@ -12,6 +13,7 @@ users.addColumn('email', String).unique()
 users.addColumn('banned', Boolean).index(null, 'btree').default(false)
 users.addColumn('password', String).nullable()
 users.addColumn('invitation_code', String).onInsert((value) => value || crypto.randomBytes(6).toString('hex'))
+users.addColumn('likes', 'integer').default(0)
 users.addCreatedAtColumn('created_at')
 users.addUpdatedAtColumn('updated_at')
 
@@ -66,6 +68,28 @@ describe('Test everything', () => {
         assert.ok(result.created_at)
         assert.ok(result.updated_at)
         assert.ok(result.updated_at > result.created_at)
+      })
+  })
+
+  it('should update a user using incr()', () => {
+    return users.update({ id: userId, likes: incr(100) })
+      .then((result) => {
+        assert.ok(result, 1)
+        return users.selectOne({ id: userId })
+      })
+      .then((result) => {
+        assert.equal(result.likes, 100)
+      })
+  })
+
+  it('should update a user using a negative incr()', () => {
+    return users.update({ id: userId, likes: incr(-20) })
+      .then((result) => {
+        assert.ok(result, 1)
+        return users.selectOne({ id: userId })
+      })
+      .then((result) => {
+        assert.equal(result.likes, 80)
       })
   })
 
@@ -176,8 +200,8 @@ describe('Test everything', () => {
   })
 
   it('tests the columns() utiliy method', () => {
-    assert.equal(users.columns(), '"id", "first_name", "last_name", "email", "banned", "password", "invitation_code", "created_at", "updated_at"')
-    assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password", u."invitation_code" AS "u_invitation_code", u."created_at" AS "u_created_at", u."updated_at" AS "u_updated_at"')
-    assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password", u."invitation_code", u."created_at", u."updated_at"')
+    assert.equal(users.columns(), '"id", "first_name", "last_name", "email", "banned", "password", "invitation_code", "likes", "created_at", "updated_at"')
+    assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password", u."invitation_code" AS "u_invitation_code", u."likes" AS "u_likes", u."created_at" AS "u_created_at", u."updated_at" AS "u_updated_at"')
+    assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password", u."invitation_code", u."likes", u."created_at", u."updated_at"')
   })
 })

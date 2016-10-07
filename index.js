@@ -2,6 +2,14 @@ var _ = require('underscore')
 var dbdiff = require('dbdiff')
 var PostgresClient = require('./postgresql-client')
 
+class Incr {
+
+  constructor (n) {
+    this.n = n
+  }
+
+}
+
 class Column {
 
   constructor (t, schema, table, name, type) {
@@ -118,8 +126,14 @@ class Table {
 
   _pairs (keys, obj, params) {
     return keys.map((key) => {
-      params.push(obj[key])
-      return `"${key}" = $${params.length}`
+      var val = obj[key]
+      if (val instanceof Incr) {
+        params.push(Math.abs(val.n))
+        return `"${key}" = "${key}" ${val.n > 0 ? '+' : '-'} $${params.length}`
+      } else {
+        params.push(val)
+        return `"${key}" = $${params.length}`
+      }
     }).join(', ')
   }
 
@@ -166,7 +180,7 @@ class Table {
     var fields = _.difference(keys, this.pks)
     var params = []
     return this.client.execute(`
-      UPDATE ${this.table.schema}.${this.table.name}
+      UPDATE ${this.table.schema}."${this.table.name}"
       SET ${this._pairs(fields, obj, params)}
       WHERE ${this._ands(this.pks, obj, params)}
     `, params)
@@ -180,7 +194,7 @@ class Table {
   updateWhere (obj, where) {
     var params = []
     return this.client.execute(`
-      UPDATE ${this.table.schema}.${this.table.name}
+      UPDATE ${this.table.schema}."${this.table.name}"
       SET ${this._pairs(this._keys(obj), obj, params)}
       WHERE ${this._ands(this._keys(where), where, params, true)}
     `, params)
@@ -190,7 +204,7 @@ class Table {
     var keys = this._keys(obj || {})
     var params = []
     return this.client.findOne(`
-      SELECT * FROM ${this.table.schema}.${this.table.name}
+      SELECT * FROM ${this.table.schema}."${this.table.name}"
       WHERE ${this._ands(keys, obj, params, true)}
     `, params)
   }
@@ -199,7 +213,7 @@ class Table {
     var keys = this._keys(obj || {})
     var params = []
     return this.client.find(`
-      SELECT * FROM ${this.table.schema}.${this.table.name}
+      SELECT * FROM ${this.table.schema}."${this.table.name}"
       ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
       ${options.groupBy ? 'GROUP BY ' + options.groupBy : ''}
       ${options.orderBy ? 'ORDER BY ' + options.orderBy : ''}
@@ -211,7 +225,7 @@ class Table {
   delete (obj) {
     var params = []
     return this.client.execute(`
-      DELETE FROM ${this.table.schema}.${this.table.name}
+      DELETE FROM ${this.table.schema}."${this.table.name}"
       WHERE ${this._ands(this.pks, obj, params, true)}
     `, params)
   }
@@ -219,7 +233,7 @@ class Table {
   deleteWhere (where) {
     var params = []
     return this.client.execute(`
-      DELETE FROM ${this.table.schema}.${this.table.name}
+      DELETE FROM ${this.table.schema}."${this.table.name}"
       WHERE ${this._ands(this._keys(where), where, params, true)}
     `, params)
   }
@@ -349,3 +363,5 @@ class Seaquel {
 exports.connect = (options) => {
   return new Seaquel(options)
 }
+
+exports.incr = (n) => new Incr(n)

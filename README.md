@@ -109,7 +109,7 @@ var users = db.addTable('users')
 users.insert({ first_name: 'Anakin', last_name: 'Skywalker', email: 'anakin@example.com' })
 
 // Update an objet
-users.update({ id: userId, first_name: 'Darth', last_name: 'Vader', email: 'vader@example.com' })
+users.update({ id: userId, first_name: 'Darth', last_name: 'Vader', email: 'vader@example.com', likes: seaquel.incr(100) })
 
 // Querying one object
 users.selectOne({ id: userId })
