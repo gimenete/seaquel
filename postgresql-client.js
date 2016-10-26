@@ -40,6 +40,7 @@ class PostgresClient {
   }
 
   query (sql, params = []) {
+    var stack = new Error().stack
     return new Promise((resolve, reject) => {
       this.pool.connect((err, client, done) => {
         if (err) return reject(err)
@@ -48,6 +49,12 @@ class PostgresClient {
           err ? reject(err) : resolve(result)
         })
       })
+    })
+    .catch((err) => {
+      var message = `${err.message}. SQL: ${sql} params: ${JSON.stringify(params, null, 2)}`
+      var error = new Error(message)
+      error.stack = [message].concat(stack.split('\n').slice(1)).join('\n')
+      throw error
     })
   }
 

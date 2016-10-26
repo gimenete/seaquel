@@ -204,4 +204,17 @@ describe('Test everything', () => {
     assert.equal(users.columns('u'), 'u."id" AS "u_id", u."first_name" AS "u_first_name", u."last_name" AS "u_last_name", u."email" AS "u_email", u."banned" AS "u_banned", u."password" AS "u_password", u."invitation_code" AS "u_invitation_code", u."likes" AS "u_likes", u."created_at" AS "u_created_at", u."updated_at" AS "u_updated_at"')
     assert.equal(users.columns('u', false), 'u."id", u."first_name", u."last_name", u."email", u."banned", u."password", u."invitation_code", u."likes", u."created_at", u."updated_at"')
   })
+
+  it('should give information in an error', () => {
+    return db.queryAll('NONSENSE', [1337])
+      .then((result) => {
+        throw new Error('Query should have failed')
+      })
+      .catch((err) => {
+        assert.ok(err.message.indexOf('NONSENSE') > 0)
+        assert.ok(err.message.indexOf('1337') > 0)
+        assert.ok(err.stack.indexOf('NONSENSE') > 0)
+        assert.ok(err.stack.indexOf('1337') > 0)
+      })
+  })
 })
