@@ -139,13 +139,19 @@ class Table {
 
   _ands (keys, obj, params, operator) {
     return keys.map((key) => {
-      params.push(obj[key])
       var n = key.indexOf(' ')
+      var value = obj[key]
       if (operator && n > 0) {
         var op = key.substring(n + 1).trim()
         key = key.substring(0, n).trim()
-        return `"${key}" ${op} $${params.length}`
+        if (value === null) {
+          return `"${key}" ${op} NULL`
+        } else {
+          params.push(value)
+          return `"${key}" ${op} $${params.length}`
+        }
       }
+      params.push(value)
       return `"${key}" = $${params.length}`
     }).join(' AND ')
   }

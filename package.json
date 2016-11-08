@@ -1,6 +1,6 @@
 {
   "name": "seaquel",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "The best of an ORM with the flexibility of writing your own SQL",
   "main": "index.js",
   "scripts": {
