@@ -258,8 +258,7 @@ class Table {
       return this.client.find(sql, params)
         .then((rows) => {
           return rows.map((row) => {
-            var obj = {}
-            obj[this.table.name] = Seaquel.pick(row, this.table.name)
+            var obj = Seaquel.pick(row, this.table.name)
             options.join.forEach((join) => {
               if (join.filterOnly) return
               obj[join.as] = Seaquel.pick(row, '_' + join.as)
