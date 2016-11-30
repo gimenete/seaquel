@@ -152,6 +152,30 @@ These methods are:
 - `deleteWhere(where)`. This method accepts operators
 - `updateWhere(obj, where)`. The second argument accepts operators
 
+## JOINS
+
+With `seaquel` is easy to perform joins. For example:
+
+```
+notifications.selectAll(null, {
+  orderBy: 'notifications.id',
+  join: [
+    { table: users, as: 'user', where: { first_name: 'Darth' }, type: 'left' }
+  ]
+})
+```
+
+In this case the result will include for each row a `user` object with the columns of the joined table.
+
+These are all the available options:
+
+- `table`. Required. The referenced table. It must be an object returned by `addTable()`
+- `as`. Required. It's the property name that will contain the referenced objetc
+- `where`. Optional. Additional constraints to apply to the JOIN
+- `type`. Optional. The type of join (left, right, inner)
+- `filterOnly`. Optional. If it's true the join will be performed but the columns of the referenced table won't be included in the result
+- `through`. Optional. If you have more than one foreign key to the same referenced table with this you specify the column or columns that need to be used in the JOIN. This must be a string or an array of strings (if the foreign key has multiple columns).
+
 
 ## Custom queries
 

@@ -210,7 +210,7 @@ class Table {
     var sql = ''
     ;(options.join || []).forEach((join) => {
       var operator = join.type || ''
-      var model = join.model
+      var model = join.table
       var through = join.through
       var as = '_' + join.as
       if (typeof through === 'string') through = [through]
@@ -243,7 +243,7 @@ class Table {
       var selects = [this.columns(this.table.name)].concat(
         options.join
           .filter((join) => !join.filterOnly)
-          .map((join) => join.model.columns('_' + join.as))
+          .map((join) => join.table.columns('_' + join.as))
       )
       var sql = `
         SELECT ${selects.join(', ')}

@@ -198,7 +198,7 @@ describe('Test everything', () => {
     return notifications.selectAll(null, {
       orderBy: 'notifications.id',
       join: [
-        { model: users, as: 'user' }
+        { table: users, as: 'user' }
       ]
     })
     .then((result) => {
@@ -218,7 +218,7 @@ describe('Test everything', () => {
     return notifications.selectAll(null, {
       orderBy: 'notifications.id',
       join: [
-        { model: users, as: 'user', through: 'user_id' }
+        { table: users, as: 'user', through: 'user_id' }
       ]
     })
     .then((result) => {
@@ -238,7 +238,7 @@ describe('Test everything', () => {
     return notifications.selectAll(null, {
       orderBy: 'notifications.id',
       join: [
-        { model: users, as: 'user', where: { first_name: 'Darth' } }
+        { table: users, as: 'user', where: { first_name: 'Darth' } }
       ]
     })
     .then((result) => {
@@ -255,7 +255,7 @@ describe('Test everything', () => {
     return notifications.selectAll(null, {
       orderBy: 'notifications.id',
       join: [
-        { model: users, as: 'user', where: { first_name: 'Darth' }, type: 'left' }
+        { table: users, as: 'user', where: { first_name: 'Darth' }, type: 'left' }
       ]
     })
     .then((result) => {
@@ -276,7 +276,7 @@ describe('Test everything', () => {
     return notifications.selectAll(null, {
       orderBy: 'notifications.id',
       join: [
-        { model: users, as: 'user', where: { first_name: 'Darth' }, filterOnly: true }
+        { table: users, as: 'user', where: { first_name: 'Darth' }, filterOnly: true }
       ]
     })
     .then((result) => {
