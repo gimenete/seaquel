@@ -137,7 +137,7 @@ class Table {
     }).join(', ')
   }
 
-  _ands (keys, obj, params, operator) {
+  _ands (keys, obj, params, operator, table = this.table.name) {
     return keys.map((key) => {
       var n = key.indexOf(' ')
       var value = obj[key]
@@ -145,14 +145,14 @@ class Table {
         var op = key.substring(n + 1).trim()
         key = key.substring(0, n).trim()
         if (value === null) {
-          return `"${key}" ${op} NULL`
+          return `"${table}"."${key}" ${op} NULL`
         } else {
           params.push(value)
-          return `"${key}" ${op} $${params.length}`
+          return `"${table}"."${key}" ${op} $${params.length}`
         }
       }
       params.push(value)
-      return `"${key}" = $${params.length}`
+      return `"${table}"."${key}" = $${params.length}`
     }).join(' AND ')
   }
 
@@ -206,26 +206,77 @@ class Table {
     `, params)
   }
 
-  selectOne (obj) {
-    var keys = this._keys(obj || {})
-    var params = []
-    return this.client.findOne(`
-      SELECT * FROM ${this.table.schema}."${this.table.name}"
-      WHERE ${this._ands(keys, obj, params, true)}
-    `, params)
+  _joins (obj, options, params) {
+    var sql = ''
+    ;(options.join || []).forEach((join) => {
+      var operator = join.type || ''
+      var model = join.model
+      var through = join.through
+      var as = '_' + join.as
+      if (typeof through === 'string') through = [through]
+      var constraint = this.table.constraints.find((constraint) => {
+        if (constraint.referenced_table !== model.table.name) return false
+        if (through) {
+          return through.length === constraint.columns.length &&
+            _.difference(through.length, constraint.columns).length === 0
+        }
+        return true
+      })
+      sql += `${operator} JOIN "${model.table.name}" "${as}" ON `
+      sql += constraint.columns.map((col, i) => `"${this.table.name}"."${col}" = "${as}"."${constraint.referenced_columns[i]}"`).join(' AND ')
+      var keys = Object.keys(join.where || {})
+      if (keys.length > 0) {
+        sql += ' AND ' + this._ands(Object.keys(join.where || {}), join.where, params, true, '_' + join.as)
+      }
+    })
+    return sql
+  }
+
+  selectOne (obj, options) {
+    return this.selectAll(obj, options).then((rows) => rows[0])
   }
 
   selectAll (obj, options = {}) {
     var keys = this._keys(obj || {})
     var params = []
-    return this.client.find(`
-      SELECT * FROM ${this.table.schema}."${this.table.name}"
-      ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
-      ${options.groupBy ? 'GROUP BY ' + options.groupBy : ''}
-      ${options.orderBy ? 'ORDER BY ' + options.orderBy : ''}
-      ${options.limit ? 'LIMIT ' + options.limit : ''}
-      ${options.offset ? 'OFFSET ' + options.offset : ''}
-    `, params)
+    if (options.join) {
+      var selects = [this.columns(this.table.name)].concat(
+        options.join
+          .filter((join) => !join.filterOnly)
+          .map((join) => join.model.columns('_' + join.as))
+      )
+      var sql = `
+        SELECT ${selects.join(', ')}
+        FROM ${this.table.schema}."${this.table.name}" "${this.table.name}"
+        ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
+        ${this._joins(obj, options, params)}
+        ${options.groupBy ? 'GROUP BY ' + options.groupBy : ''}
+        ${options.orderBy ? 'ORDER BY ' + options.orderBy : ''}
+        ${options.limit ? 'LIMIT ' + options.limit : ''}
+        ${options.offset ? 'OFFSET ' + options.offset : ''}
+      `
+      return this.client.find(sql, params)
+        .then((rows) => {
+          return rows.map((row) => {
+            var obj = {}
+            obj[this.table.name] = Seaquel.pick(row, this.table.name)
+            options.join.forEach((join) => {
+              if (join.filterOnly) return
+              obj[join.as] = Seaquel.pick(row, '_' + join.as)
+            })
+            return obj
+          })
+        })
+    } else {
+      return this.client.find(`
+        SELECT * FROM ${this.table.schema}."${this.table.name}"
+        ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
+        ${options.groupBy ? 'GROUP BY ' + options.groupBy : ''}
+        ${options.orderBy ? 'ORDER BY ' + options.orderBy : ''}
+        ${options.limit ? 'LIMIT ' + options.limit : ''}
+        ${options.offset ? 'OFFSET ' + options.offset : ''}
+      `, params)
+    }
   }
 
   delete (obj) {
@@ -353,7 +404,7 @@ class Seaquel {
     return this.client.execute(sql, params)
   }
 
-  pick (row, prefix) {
+  static pick (row, prefix) {
     var obj = {}
     prefix = prefix + '_'
     Object.keys(row).forEach((key) => {
@@ -362,6 +413,10 @@ class Seaquel {
       }
     })
     return obj
+  }
+
+  pick (row, prefix) {
+    return Seaquel.pick(row, prefix)
   }
 
 }

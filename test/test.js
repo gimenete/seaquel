@@ -22,7 +22,7 @@ notifications.addColumn('id', 'serial').primaryKey()
 notifications.addColumn('text', String)
 notifications.addForeignKey('user_id', users.getColumn('id'))
 
-var userId
+var userId, userId2
 
 describe('Test everything', () => {
   before(() => {
@@ -38,7 +38,8 @@ describe('Test everything', () => {
   })
 
   it('should delete all users', () => {
-    return db.execute('DELETE FROM users')
+    return db.execute('DELETE FROM notifications')
+      .then(() => db.execute('DELETE FROM users'))
   })
 
   it('should insert a user', () => {
@@ -96,7 +97,8 @@ describe('Test everything', () => {
   it('shold insert another user', () => {
     return users.insert({ first_name: 'Padmé', last_name: 'Amidala', email: 'padme@example.com' })
       .then((result) => {
-        assert.ok(userId)
+        userId2 = result.id
+        assert.ok(userId2)
       })
   })
 
@@ -183,6 +185,110 @@ describe('Test everything', () => {
       .then((result) => {
         assert.equal(result, 2)
       })
+  })
+
+  it('should insert notifications', () => {
+    return Promise.all([
+      notifications.insert({ user_id: userId, text: 'A notification' }),
+      notifications.insert({ user_id: userId2, text: 'Another notification' })
+    ])
+  })
+
+  it('should query notifications and join their users', () => {
+    return notifications.selectAll(null, {
+      orderBy: 'notifications.id',
+      join: [
+        { model: users, as: 'user' }
+      ]
+    })
+    .then((result) => {
+      assert.equal(result.length, 2)
+      assert.ok(result[0].notifications)
+      assert.ok(result[0].notifications.text)
+      assert.ok(result[0].user)
+      assert.ok(result[0].user.first_name)
+      assert.ok(result[1].notifications)
+      assert.ok(result[1].notifications.text)
+      assert.ok(result[1].user)
+      assert.ok(result[1].user.first_name)
+    })
+  })
+
+  it('should query notifications and join their users with `through`', () => {
+    return notifications.selectAll(null, {
+      orderBy: 'notifications.id',
+      join: [
+        { model: users, as: 'user', through: 'user_id' }
+      ]
+    })
+    .then((result) => {
+      assert.equal(result.length, 2)
+      assert.ok(result[0].notifications)
+      assert.ok(result[0].notifications.text)
+      assert.ok(result[0].user)
+      assert.ok(result[0].user.first_name)
+      assert.ok(result[1].notifications)
+      assert.ok(result[1].notifications.text)
+      assert.ok(result[1].user)
+      assert.ok(result[1].user.first_name)
+    })
+  })
+
+  it('should query notifications and join their users with constraints', () => {
+    return notifications.selectAll(null, {
+      orderBy: 'notifications.id',
+      join: [
+        { model: users, as: 'user', where: { first_name: 'Darth' } }
+      ]
+    })
+    .then((result) => {
+      assert.equal(result.length, 1)
+      assert.ok(result[0].notifications)
+      assert.ok(result[0].notifications.text)
+      assert.ok(result[0].user)
+      assert.ok(result[0].user.first_name)
+      assert.equal(result[0].user.first_name, 'Darth')
+    })
+  })
+
+  it('should query notifications and join their users with constraints and a type', () => {
+    return notifications.selectAll(null, {
+      orderBy: 'notifications.id',
+      join: [
+        { model: users, as: 'user', where: { first_name: 'Darth' }, type: 'left' }
+      ]
+    })
+    .then((result) => {
+      assert.equal(result.length, 2)
+      assert.ok(result[0].notifications)
+      assert.ok(result[0].notifications.text)
+      assert.ok(result[0].user)
+      assert.ok(result[0].user.first_name)
+      assert.equal(result[0].user.first_name, 'Darth')
+      assert.ok(result[1].notifications)
+      assert.ok(result[1].notifications.text)
+      assert.ok(result[1].user)
+      assert.equal(result[1].user.first_name, null)
+    })
+  })
+
+  it('should query notifications and join their users with constraints but without fetching', () => {
+    return notifications.selectAll(null, {
+      orderBy: 'notifications.id',
+      join: [
+        { model: users, as: 'user', where: { first_name: 'Darth' }, filterOnly: true }
+      ]
+    })
+    .then((result) => {
+      assert.equal(result.length, 1)
+      assert.ok(result[0].notifications)
+      assert.ok(result[0].notifications.text)
+      assert.ok(!result[0].user)
+    })
+  })
+
+  it('should delete all notifications', () => {
+    return db.execute('DELETE FROM notifications')
   })
 
   it('should delete a user', () => {
