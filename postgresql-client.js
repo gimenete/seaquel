@@ -63,25 +63,25 @@ class PostgresClient {
       domains.run(() => {
         this.pool.connect((err, client, done) => {
           if (err) return reject(err)
-          const cleanup = (err) => {
+          const cleanup = (err, data) => {
             var done = domains.get('done')
             domains.delete('client')
             domains.delete('done')
             done && done()
-            err ? reject(err) : resolve()
+            err ? reject(err) : resolve(data)
           }
           try {
-            // domains.set('client', client)
-            // domains.set('done', done)
+            domains.set('client', client)
+            domains.set('done', done)
             // console.log('begin')
             // see https://www.postgresql.org/docs/9.6/static/sql-begin.html
             client.query(`BEGIN ${isolationLevel ? 'ISOLATION LEVEL ' + isolationLevel : ''}`, ns.bind((err, result) => {
               if (err) return cleanup(err)
               promise()
-                .then(() => {
+                .then((data) => {
                   client.query('COMMIT', (err, result) => {
                     // console.log('commit')
-                    cleanup(err)
+                    cleanup(err, data)
                   })
                 })
                 .catch((err) => {
