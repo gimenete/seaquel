@@ -192,6 +192,20 @@ db.queryAll('SELECT DISTINCT something FROM users')
 db.execute('CREATE EXTENSION unaccent')
 ```
 
+## Transactions
+
+Transactions are super easy. Just wrap everything that needs to be ran in the same transaction inside a `db.transaction()` call:
+
+```javascript
+db.transaction(() => {
+  // Do your queries here and return a promise.
+  // If the promise fails the transaction will be rolled back.
+  // If the promise succeeds the transaction will be committed.
+}, 'SERIALIZABLE')
+```
+
+The second parameter is optional and it is the isolation level of the transaction. If it is not provided the isolation level would be the default of the db you are using. For PostgreSQL it is `READ COMMITTED`.
+
 
 ## Utility mehtods
 

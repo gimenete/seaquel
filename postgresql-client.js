@@ -1,5 +1,24 @@
-var pg = require('pg')
-var url = require('url')
+const pg = require('pg')
+const url = require('url')
+const ns = require('continuation-local-storage').createNamespace('seaquel')
+
+const domains = {
+  set (key, value) {
+    ns.set(key, value)
+  },
+
+  get (key) {
+    return ns.get(key)
+  },
+
+  delete (key) {
+    ns.active && ns.set(key, null)
+  },
+
+  run (callback) {
+    ns.run(callback)
+  }
+}
 
 class PostgresClient {
   constructor (options) {
@@ -39,16 +58,66 @@ class PostgresClient {
     return this.query(sql, params).then((result) => result.rowCount)
   }
 
+  transaction (promise, isolationLevel) {
+    return new Promise((resolve, reject) => {
+      domains.run(() => {
+        this.pool.connect((err, client, done) => {
+          if (err) return reject(err)
+          const cleanup = (err) => {
+            var done = domains.get('done')
+            domains.delete('client')
+            domains.delete('done')
+            done && done()
+            err ? reject(err) : resolve()
+          }
+          try {
+            // domains.set('client', client)
+            // domains.set('done', done)
+            // console.log('begin')
+            // see https://www.postgresql.org/docs/9.6/static/sql-begin.html
+            client.query(`BEGIN ${isolationLevel ? 'ISOLATION LEVEL ' + isolationLevel : ''}`, ns.bind((err, result) => {
+              if (err) return cleanup(err)
+              promise()
+                .then(() => {
+                  client.query('COMMIT', (err, result) => {
+                    // console.log('commit')
+                    cleanup(err)
+                  })
+                })
+                .catch((err) => {
+                  client.query('ROLLBACK', (error, result) => {
+                    // console.log('rollback')
+                    cleanup(error || err)
+                  })
+                })
+            }))
+          } catch (err) {
+            cleanup(err)
+          }
+        })
+      })
+    })
+  }
+
   query (sql, params = []) {
     var stack = new Error().stack
     return new Promise((resolve, reject) => {
-      this.pool.connect((err, client, done) => {
-        if (err) return reject(err)
-        client.query(sql, params, (err, result) => {
-          done()
+      var client = domains.get('client')
+      if (client) {
+        // console.log('using existing client')
+        client.query(sql, params, ns.bind((err, result) => {
           err ? reject(err) : resolve(result)
+        }))
+      } else {
+        // console.log('no client')
+        this.pool.connect((err, client, done) => {
+          if (err) return reject(err)
+          client.query(sql, params, (err, result) => {
+            done()
+            err ? reject(err) : resolve(result)
+          })
         })
-      })
+      }
     })
     .catch((err) => {
       var message = `${err.message}. SQL: ${sql} params: ${JSON.stringify(params, null, 2)}`

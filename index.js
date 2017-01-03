@@ -403,6 +403,10 @@ class Seaquel {
     return this.client.execute(sql, params)
   }
 
+  transaction (promise, mode) {
+    return this.client.transaction(promise, mode)
+  }
+
   static pick (row, prefix) {
     var obj = {}
     prefix = prefix + '_'

@@ -323,4 +323,40 @@ describe('Test everything', () => {
         assert.ok(err.stack.indexOf('1337') > 0)
       })
   })
+
+  it('should test a failed transaction with isolation level', () => {
+    return users.insert({ first_name: 'Existing', last_name: 'User', email: 'existing@example.com' })
+      .then(() => {
+        return db.transaction(() => {
+          return db.execute('DELETE FROM notifications')
+            .then(() => db.execute('DELETE FROM users'))
+            .then(() => {
+              return users.insert({ first_name: 'Ghost', last_name: 'User', email: 'ghost@example.com' })
+            })
+            .then(() => db.execute('!!!'))
+        }, 'SERIALIZABLE')
+        .then(() => {
+          throw new Error('Query should have failed')
+        })
+        .catch(() => {
+          return db.queryOne('SELECT COUNT(*) AS count FROM users')
+            .then((res) => {
+              assert.equal(res.count, 1) // only the "Existing User"
+            })
+        })
+      })
+  })
+
+  it('should test a successfull transaction with no isolation level', () => {
+    return db.transaction(() => {
+      return db.execute('DELETE FROM notifications')
+        .then(() => db.execute('DELETE FROM users'))
+    })
+    .then(() => {
+      return db.queryOne('SELECT COUNT(*) AS count FROM users')
+    })
+    .then((res) => {
+      assert.equal(res.count, 0)
+    })
+  })
 })
