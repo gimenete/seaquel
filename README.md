@@ -156,7 +156,7 @@ These methods are:
 
 With `seaquel` is easy to perform joins. For example:
 
-```
+```javascript
 notifications.selectAll(null, {
   orderBy: 'notifications.id',
   join: [
@@ -206,6 +206,7 @@ db.transaction(() => {
 
 The second parameter is optional and it is the isolation level of the transaction. If it is not provided the isolation level would be the default of the db you are using. For PostgreSQL it is `READ COMMITTED`.
 
+The `db.transaction()` method returns itself a Promise too.
 
 ## Utility mehtods
 
