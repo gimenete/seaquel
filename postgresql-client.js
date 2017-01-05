@@ -63,13 +63,12 @@ class PostgresClient {
       domains.run(() => {
         this.pool.connect((err, client, done) => {
           if (err) return reject(err)
-          const cleanup = (err, data) => {
-            var done = domains.get('done')
+          const cleanup = ns.bind((err, data) => {
             domains.delete('client')
             domains.delete('done')
-            done && done()
+            done()
             err ? reject(err) : resolve(data)
-          }
+          })
           try {
             domains.set('client', client)
             domains.set('done', done)
