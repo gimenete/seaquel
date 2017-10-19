@@ -248,8 +248,8 @@ class Table {
       var sql = `
         SELECT ${selects.join(', ')}
         FROM ${this.table.schema}."${this.table.name}" "${this.table.name}"
-        ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
         ${this._joins(obj, options, params)}
+        ${keys.length > 0 ? `WHERE ${this._ands(keys, obj, params, true)}` : ''}
         ${options.groupBy ? 'GROUP BY ' + options.groupBy : ''}
         ${options.orderBy ? 'ORDER BY ' + options.orderBy : ''}
         ${options.limit ? 'LIMIT ' + options.limit : ''}
